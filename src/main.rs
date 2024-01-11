@@ -1,7 +1,7 @@
 mod tasks;
 use tasks::*;
+use std::collections::HashMap;
 
 fn main() -> () {
-    let time = clock::Clock::new(12, 30);
-    dbg!("{}",time);
+    let map = hashmap!(10 => 20, 30 => 9);
 }

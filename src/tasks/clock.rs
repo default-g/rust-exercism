@@ -9,7 +9,7 @@ impl Clock {
     const SECONDS_PER_DAY: i32 = 60 * 60 * 24;
 
     pub fn hours_and_minutes_to_seconds(hours: i32, minutes: i32) -> i32 {
-        let mut seconds = (hours * 60 * 60 + minutes * 60);
+        let mut seconds = hours * 60 * 60 + minutes * 60;
         while seconds < 0 {
             seconds += Self::SECONDS_PER_DAY;
         }
@@ -21,6 +21,7 @@ impl Clock {
         Self {seconds_since_midnight: Self::hours_and_minutes_to_seconds(hours, minutes) % Self::SECONDS_PER_DAY}
     }
 
+    #[allow(dead_code)]
     pub fn add_minutes(&self, minutes: i32) -> Self {
         let minutes_to_seconds = minutes * 60;
         let total_seconds = self.seconds_since_midnight + minutes_to_seconds;

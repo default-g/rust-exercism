@@ -10,7 +10,7 @@ fn is_anagrams(word: &str, other_word: &str) -> bool {
     string1 == string2
 }
 
-
+#[allow(dead_code)]
 pub fn anagrams_for<'a>(word: &str, possible_anagrams: &[&'a str]) -> HashSet<&'a str> {
     let mut hash_set: HashSet<&'a str> = HashSet::new();
 
