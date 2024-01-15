@@ -1,20 +1,20 @@
-use std::{collections::HashMap, str::FromStr, ptr::null};
+use std::{collections::HashMap, str::FromStr, ptr::null, cmp::Ordering};
 
-#[derive(PartialEq, Clone, Copy, Debug, PartialOrd)]
+#[derive(PartialEq, Clone, Copy, Debug, PartialOrd, Ord, Eq)]
 enum Rank {
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    Ten,
-    Jack,
-    Queen,
-    King,
-    Ace,
+    Two = 2,
+    Three = 3,
+    Four = 4,
+    Five = 5,
+    Six = 6,
+    Seven = 7,
+    Eight = 8,
+    Nine = 9,
+    Ten = 10,
+    Jack = 11,
+    Queen = 12,
+    King = 13,
+    Ace = 14,
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -25,7 +25,7 @@ enum Suit {
     Spades,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 struct Card {
     rank: Rank,
     suit: Suit,
@@ -68,7 +68,6 @@ impl FromStr for Card {
         let suit_slice: &str;
         if rank == Rank::Ten {
             suit_slice = &s[2..3];
-            dbg!(suit_slice);
         } else {
             suit_slice = &s[1..2];
         }
@@ -84,47 +83,82 @@ impl FromStr for Card {
     }
 }
 
-fn five_of_a_kind(hand: Vec<Card>) -> bool {
-    let first_card = &hand[0];
-    hand.iter().all(|card| card.rank == first_card.rank)
+
+fn n_of_a_kind(mut hand: Vec<Card>, n: usize) -> bool {
+    hand.sort_by_key(|card| card.rank);
+    for i in (0..hand.len() - n).step_by(n) {
+        let first_card = &hand[i];
+        if hand[i..i + n].iter().all(|card| card.rank == first_card.rank) {
+            return true;
+        }
+    }
+
+    false
 }
+
+fn five_of_a_kind(hand: Vec<Card>) -> bool {
+    n_of_a_kind(hand, 5)
+}
+
 
 fn four_of_a_kind(hand: Vec<Card>) -> bool {
-    unimplemented!();
+    n_of_a_kind(hand, 4)
 }
 
-fn full_house(hand: Vec<Card>) -> bool {
-    unimplemented!();
-}
-
-fn flush(hand: Vec<Card>) -> bool {
-    unimplemented!();
-}
 
 fn three_of_a_kind(hand: Vec<Card>) -> bool {
-    unimplemented!();
+    n_of_a_kind(hand, 3)
 }
+
+
+fn full_house(mut hand: Vec<Card>) -> bool {
+    hand.sort_by_key(|card| card.rank);
+
+    hand[0].rank == hand[1].rank && hand[1].rank == hand[2].rank && hand[3].rank == hand[4].rank ||
+        hand[0].rank == hand[1].rank && hand[2].rank == hand[3].rank && hand[3].rank == hand[4].rank
+
+}
+
+
+fn flush(hand: Vec<Card>) -> bool {
+    hand.iter().all(|card| card.suit == hand[0].suit)
+}
+
 
 fn two_pair(hand: Vec<Card>) -> bool {
     unimplemented!();
 }
 
+
 fn one_pair(hand: Vec<Card>) -> bool {
     unimplemented!();
 }
+
 
 fn high_card(hand: Vec<Card>) -> bool {
     unimplemented!();
 }
 
-fn straigh(hand: Vec<Card>) -> bool {
+fn highest_rank(mut hand: Vec<Card>) -> Card {
+    hand.sort_by_key(|card| card.rank);
+    *hand.last().unwrap()
+}
+
+
+fn straigh(mut hand: Vec<Card>) -> bool {
+
+    hand.sort_by_key(|card| card.rank);
+
+    dbg!(&hand);
 
     for i in 1..hand.len() {
 
         let first_card = &hand[i - 1];
         let second_card = &hand[i];
+        // dbg!(first_card.rank, second_card.rank, first_card.rank as u8, second_card.rank as u8);
+        if first_card.rank as u8 != (second_card.rank as u8) - 1{
+            dbg!(first_card.rank, second_card.rank, first_card.rank as u8, second_card.rank as u8);
 
-        if first_card.rank > second_card.rank || first_card.rank == Rank::Ace && second_card.rank == Rank::Two && i == 1 {
             return false;
         }
     }
@@ -149,7 +183,14 @@ fn straigh_of_flush(hand: Vec<Card>) -> bool {
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     let mut winning_hand_vector: Vec<&'a str> = Vec::new();
 
-    let winning_variants = vec![five_of_a_kind, straigh_of_flush, straigh];
+    let winning_variants = vec![
+        five_of_a_kind,
+        straigh_of_flush,
+        four_of_a_kind,
+        full_house,
+        flush,
+        straigh,
+    ];
 
     for variant in winning_variants {
         for hand in hands {
