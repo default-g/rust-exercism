@@ -8,3 +8,4 @@ pub mod macros;
 pub mod poker;
 pub mod beer_song;
 pub mod armstrong_number;
+pub mod difference_of_squares;
