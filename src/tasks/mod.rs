@@ -12,3 +12,5 @@ pub mod difference_of_squares;
 pub mod leap_year;
 pub mod nth_prime;
 pub mod prime_factors;
+pub mod proverb;
+pub mod sum_of_multiplies;
