@@ -14,3 +14,4 @@ pub mod nth_prime;
 pub mod prime_factors;
 pub mod proverb;
 pub mod sum_of_multiplies;
+pub mod bob;
