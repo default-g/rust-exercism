@@ -9,3 +9,6 @@ pub mod poker;
 pub mod beer_song;
 pub mod armstrong_number;
 pub mod difference_of_squares;
+pub mod leap_year;
+pub mod nth_prime;
+pub mod prime_factors;
