@@ -15,3 +15,5 @@ pub mod prime_factors;
 pub mod proverb;
 pub mod sum_of_multiplies;
 pub mod bob;
+pub mod high_scores;
+pub mod matching_brackets;
