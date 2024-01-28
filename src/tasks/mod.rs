@@ -20,3 +20,4 @@ pub mod matching_brackets;
 pub mod acronym;
 pub mod abbreviate;
 pub mod all_your_base;
+pub mod allergies;
