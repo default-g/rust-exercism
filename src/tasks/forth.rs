@@ -38,6 +38,10 @@ impl Forth {
             .basic_operations
             .insert("swap".to_string(), Forth::swap);
         forth
+            .basic_operations
+            .insert("over".to_string(), Forth::over);
+
+        forth
     }
 
     pub fn stack(&self) -> &[Value] {
@@ -45,15 +49,43 @@ impl Forth {
     }
 
     pub fn eval(&mut self, input: &str) -> Result {
-        let operations_string = String::from(input).to_lowercase();
+        let mut operations_string = String::from(input).to_lowercase();
 
         for (key, value) in self.reserved_words.iter() {
-            operations_string.replace(&key[..], &value[..]);
+            operations_string = operations_string.replace(&key[..], &value[..]);
         }
 
-        let operations = operations_string.split(" ");
+        println!("{}", operations_string);
 
-        for operation in operations.into_iter() {
+        let operations: Vec<&str> = operations_string.split(" ").collect();
+
+        for mut index in 0..operations.len() {
+            let operation = operations[index];
+
+            if operations[index] == ":" {
+                index += 1;
+                let word: &str = operations[index];
+                let first_word_char: char = word.chars().collect::<Vec<char>>()[0];
+
+                // check if keyword is fine
+
+                index += 1;
+                let mut new_definition = Vec::new();
+                while operations[index] != ";" {
+                    new_definition.push(operations[index]);
+                    index += 1;
+                }
+
+                let mut command_string = new_definition.join(" ");
+                for (key, value) in self.reserved_words.iter() {
+                    command_string = command_string.replace(&key[..], &value[..]);
+                }
+                self.reserved_words
+                    .insert(word.to_string(), new_definition.join(" ").to_string());
+
+                continue;
+            }
+
             if self.basic_operations.contains_key(operation) {
                 let result = self.basic_operations.get(operation).unwrap()(self);
                 if result.is_err() {
@@ -174,6 +206,13 @@ impl Forth {
     }
 
     fn over(&mut self) -> Result {
-        todo!()
+        if self.stack.len() < 2 {
+            return Err(Error::StackUnderflow);
+        }
+
+        let value = self.stack[self.stack.len() - 2];
+        self.stack.push(value);
+
+        Ok(())
     }
 }

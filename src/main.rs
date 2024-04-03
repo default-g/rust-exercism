@@ -1,6 +1,8 @@
 mod tasks;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::io::stdout;
+use std::io::Write;
 use tasks::forth::Forth;
 use tasks::*;
 
@@ -12,8 +14,9 @@ fn add_1(mut a: i32) {
 
 fn main() -> () {
     let mut forth = Forth::new();
-
-    forth.eval("1 2 * 3 / Dup dup dup");
+    forth.eval(": a 1 2 over ;");
+    forth.eval(": a 1 ;");
+    forth.eval("a");
     for item in forth.stack() {
         print!("{} ", item);
     }
