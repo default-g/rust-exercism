@@ -1,14 +1,10 @@
-use std::collections::HashMap;
-
 pub type Value = i32;
 pub type Result = std::result::Result<(), Error>;
-
+#[derive(Default)]
 pub struct Forth {
-    stack: Vec<i32>,
-    reserved_words: HashMap<String, String>,
-    basic_operations: HashMap<String, fn(&mut Self) -> Result>,
+    stack: Vec<Value>,
+    words: std::collections::HashMap<String, String>,
 }
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     DivisionByZero,
@@ -16,202 +12,131 @@ pub enum Error {
     UnknownWord,
     InvalidWord,
 }
-
 impl Forth {
     pub fn new() -> Forth {
-        let mut forth = Forth {
-            stack: Vec::new(),
-            reserved_words: HashMap::new(),
-            basic_operations: HashMap::new(),
-        };
-
-        forth.basic_operations.insert("+".to_string(), Forth::plus);
-        forth.basic_operations.insert("*".to_string(), Forth::mul);
-        forth.basic_operations.insert("-".to_string(), Forth::minus);
-        forth.basic_operations.insert("/".to_string(), Forth::div);
-
-        forth.basic_operations.insert("dup".to_string(), Forth::dup);
-        forth
-            .basic_operations
-            .insert("drop".to_string(), Forth::drop);
-        forth
-            .basic_operations
-            .insert("swap".to_string(), Forth::swap);
-        forth
-            .basic_operations
-            .insert("over".to_string(), Forth::over);
-
-        forth
+        Forth::default()
     }
-
     pub fn stack(&self) -> &[Value] {
-        &self.stack[..]
+        &self.stack
     }
 
     pub fn eval(&mut self, input: &str) -> Result {
-        let mut operations_string = String::from(input).to_lowercase();
+        let input_lowercase = input.to_ascii_lowercase();
+        let commands = input_lowercase.split_whitespace();
+        let mut iterator = commands.into_iter();
+        while let Some(command) = iterator.next() {
+            println!("{}", command);
 
-        for (key, value) in self.reserved_words.iter() {
-            operations_string = operations_string.replace(&key[..], &value[..]);
+            match command {
+                ":" => {
+                    let word = iterator.next().ok_or(Error::InvalidWord)?;
+                    word.parse::<Value>().err().ok_or(Error::InvalidWord)?;
+
+                    let mut new_definition: Vec<&str> = Vec::new();
+                    loop {
+                        match iterator.next() {
+                            Some(";") => break,
+                            Some(symbol) => new_definition.push(symbol),
+                            None => return Err(Error::InvalidWord),
+                        }
+                    }
+
+                    let definition_string: String = new_definition.join(" ");
+
+                    if let Some(_) = self.words.insert(word.to_string(), definition_string) {
+                        for definition in self.words.values_mut() {
+                            *definition = definition.replace(word, definition);
+                        }
+                    }
+                }
+
+                _ if self.words.contains_key(command) => {
+                    self.eval(&self.words[command].clone())?;
+                }
+                "+" => self.plus()?,
+                "*" => self.multiply()?,
+                "-" => self.minus()?,
+                "/" => self.div()?,
+                "drop" => self.drop()?,
+                "dup" => self.dup()?,
+                "over" => self.over()?,
+                "swap" => self.swap()?,
+                _ => self
+                    .stack
+                    .push(command.parse::<Value>().or(Err(Error::UnknownWord))?),
+            };
         }
-
-        println!("{}", operations_string);
-
-        let operations: Vec<&str> = operations_string.split(" ").collect();
-
-        for mut index in 0..operations.len() {
-            let operation = operations[index];
-
-            if operations[index] == ":" {
-                index += 1;
-                let word: &str = operations[index];
-                let first_word_char: char = word.chars().collect::<Vec<char>>()[0];
-
-                // check if keyword is fine
-
-                index += 1;
-                let mut new_definition = Vec::new();
-                while operations[index] != ";" {
-                    new_definition.push(operations[index]);
-                    index += 1;
-                }
-
-                let mut command_string = new_definition.join(" ");
-                for (key, value) in self.reserved_words.iter() {
-                    command_string = command_string.replace(&key[..], &value[..]);
-                }
-                self.reserved_words
-                    .insert(word.to_string(), new_definition.join(" ").to_string());
-
-                continue;
-            }
-
-            if self.basic_operations.contains_key(operation) {
-                let result = self.basic_operations.get(operation).unwrap()(self);
-                if result.is_err() {
-                    return result;
-                }
-
-                continue;
-            }
-
-            let result = operation.parse::<i32>();
-
-            match result {
-                Ok(value) => self.stack.push(value),
-                Err(_) => return Err(Error::UnknownWord),
-            }
-        }
-
         Ok(())
+    }
+
+    fn pop(&mut self) -> std::result::Result<Value, Error> {
+        self.stack.pop().ok_or(Error::StackUnderflow)
     }
 
     fn plus(&mut self) -> Result {
-        if self.stack.len() < 2 {
-            return Err(Error::StackUnderflow);
-        }
+        let second_value = self.pop()?;
+        let first_value = self.pop()?;
 
-        let first_value = self.stack.pop().unwrap();
-        let second_value = self.stack.pop().unwrap();
-
-        let new_value = first_value + second_value;
-
-        self.stack.push(new_value);
-
-        Ok(())
+        Ok(self.stack.push(first_value + second_value))
     }
 
     fn minus(&mut self) -> Result {
-        if self.stack.len() < 2 {
-            return Err(Error::StackUnderflow);
-        }
+        let second_value = self.pop()?;
+        let first_value = self.pop()?;
 
-        let first_value = self.stack.pop().unwrap();
-        let second_value = self.stack.pop().unwrap();
-
-        let new_value = first_value - second_value;
-
-        self.stack.push(new_value);
-
-        Ok(())
+        Ok(self.stack.push(first_value - second_value))
     }
 
-    fn mul(&mut self) -> Result {
-        if self.stack.len() < 2 {
-            return Err(Error::StackUnderflow);
-        }
+    fn multiply(&mut self) -> Result {
+        let first_value = self.pop()?;
+        let second_value = self.pop()?;
 
-        let first_value = self.stack.pop().unwrap();
-        let second_value = self.stack.pop().unwrap();
-
-        let new_value = first_value * second_value;
-
-        self.stack.push(new_value);
-
-        Ok(())
+        Ok(self.stack.push(first_value * second_value))
     }
 
     fn div(&mut self) -> Result {
-        if self.stack.len() < 2 {
-            return Err(Error::StackUnderflow);
-        }
-
-        let first_value = self.stack.pop().unwrap();
-        let second_value = self.stack.pop().unwrap();
+        let second_value = self.pop()?;
+        let first_value = self.pop()?;
 
         if second_value == 0 {
             return Err(Error::DivisionByZero);
         }
 
-        let new_value = first_value / second_value;
+        Ok(self.stack.push(first_value / second_value))
+    }
 
-        self.stack.push(new_value);
+    fn drop(&mut self) -> Result {
+        self.pop()?;
 
         Ok(())
     }
 
     fn dup(&mut self) -> Result {
-        if self.stack.is_empty() {
-            return Err(Error::StackUnderflow);
-        }
+        let value = self.pop()?;
 
-        let last_value = self.stack[self.stack.len() - 1];
-        self.stack.push(last_value);
-
-        Ok(())
-    }
-
-    fn drop(&mut self) -> Result {
-        if self.stack.is_empty() {
-            return Err(Error::StackUnderflow);
-        }
-
-        self.stack.pop();
-
-        Ok(())
-    }
-
-    fn swap(&mut self) -> Result {
-        if self.stack.len() < 2 {
-            return Err(Error::StackUnderflow);
-        }
-
-        let first_value = self.stack.pop().unwrap();
-        let second_value = self.stack.pop().unwrap();
-
-        self.stack.push(first_value);
-        self.stack.push(second_value);
+        self.stack.push(value);
+        self.stack.push(value);
 
         Ok(())
     }
 
     fn over(&mut self) -> Result {
-        if self.stack.len() < 2 {
-            return Err(Error::StackUnderflow);
-        }
+        let second_value = self.pop()?;
+        let first_value = self.pop()?;
 
-        let value = self.stack[self.stack.len() - 2];
-        self.stack.push(value);
+        self.stack.push(first_value);
+        self.stack.push(second_value);
+        self.stack.push(first_value);
+
+        Ok(())
+    }
+
+    fn swap(&mut self) -> Result {
+        let second_value = self.pop()?;
+        let first_value = self.pop()?;
+
+        self.stack.push(second_value);
+        self.stack.push(first_value);
 
         Ok(())
     }
